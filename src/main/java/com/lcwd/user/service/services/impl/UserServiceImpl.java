@@ -5,6 +5,7 @@ import com.lcwd.user.service.entities.Rating;
 import com.lcwd.user.service.entities.User;
 import com.lcwd.user.service.exception.ResourceNotFoundException;
 import com.lcwd.user.service.external.services.HotelService;
+import com.lcwd.user.service.external.services.RatingService;
 import com.lcwd.user.service.repository.UserRepository;
 import com.lcwd.user.service.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,27 +33,45 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private HotelService hotelService;
 
+    @Autowired
+    private RatingService ratingService;
+
     @Override
     public User saveUSer(User user) {
 
-        //Inique User Id
+        //Unique User Id
         String randomUserId = UUID.randomUUID().toString();
         user.setUserId(randomUserId);
         return userRepository.save(user);
     }
 
-//    @Override
-//    public List<User> getAllUser() {
-//        return userRepository.findAll();
-//    }
-
     @Override
     public List<User> getAllUser() {
-       List<User>userList=  userRepository.findAll();
-
+        List<User> userList = userRepository.findAll();
+        List<User> newUserList = new ArrayList<>();
         List<Hotel> allHotel = hotelService.getAllHotel();
+        for (User u : userList) {
+            String userid = u.getUserId();
+            List<Rating> ratingList = ratingService.getRatingsByUserId(userid);
 
-        return null;
+
+            for (Rating r : ratingList) {
+
+                String hotelId = r.getHotelId();
+                Hotel hotel = hotelService.getHotel(hotelId);
+                r.setHotel(hotel);
+                List<Rating> newRatingList = new ArrayList<>();
+                newRatingList.add(r);
+                u.setRatings(newRatingList);
+            }
+
+
+            newUserList.add(u);
+
+        }
+
+
+        return newUserList;
     }
 
     @Override
@@ -70,7 +89,7 @@ public class UserServiceImpl implements UserService {
 //               ||
 //               ||
             //Same Process using feign Client by using HotelService
-            Hotel hotel=hotelService.getHotel(rating.getHotelId());
+            Hotel hotel = hotelService.getHotel(rating.getHotelId());
 
             //set the hotel to rating
 
